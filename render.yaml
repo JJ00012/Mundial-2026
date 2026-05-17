@@ -2,5 +2,5 @@ services:
   - type: web
     name: panini-df
     env: python
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn app:app"
+    buildCommand: "python3 -m pip install -r requirements.txt"
+    startCommand: "python3 -m gunicorn app:app"
