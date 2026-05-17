@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Amigos | Mundial 2026{% endblock %}
+
+{% block content %}
+<section class="page-title">
+    <p class="eyebrow">Intercambios</p>
+    <h1>Amigos</h1>
+    <p>Busca coleccionistas, envía solicitudes y compara repetidas cuando acepten.</p>
+</section>
+
+<section class="panel">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Buscar</p>
+            <h2>Agregar amigo</h2>
+        </div>
+    </div>
+
+    <form method="get" action="{{ url_for('amigos') }}" class="inline-form">
+        <label>Nombre de usuario
+            <input type="text" name="buscar" value="{{ search }}" placeholder="Ej: ana">
+        </label>
+        <button class="button primary" type="submit">Buscar</button>
+    </form>
+
+    {% if search %}
+        <div class="search-results">
+            {% if results %}
+                {% for user in results %}
+                    <article class="list-item">
+                        <div>
+                            <strong>{{ user.username }}</strong>
+                            <span>Usuario encontrado</span>
+                        </div>
+                        <form method="post" action="{{ url_for('amigos') }}">
+                            <input type="hidden" name="friend" value="{{ user.username }}">
+                            <button class="button primary" type="submit">Enviar solicitud</button>
+                        </form>
+                    </article>
+                {% endfor %}
+            {% else %}
+                <p class="empty">No se encontraron usuarios con ese nombre.</p>
+            {% endif %}
+        </div>
+    {% endif %}
+</section>
+
+<section class="two-column">
+    <div class="panel">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Pendientes</p>
+                <h2>Solicitudes recibidas</h2>
+            </div>
+        </div>
+
+        {% if received_requests %}
+            <div class="simple-list">
+                {% for request in received_requests %}
+                    <article class="list-item">
+                        <div>
+                            <strong>{{ request.username }}</strong>
+                            <span>Quiere agregarte como amigo</span>
+                        </div>
+                        <div class="actions">
+                            <form method="post" action="{{ url_for('responder_solicitud', request_id=request.id, action='aceptar') }}">
+                                <button class="button primary" type="submit">Aceptar</button>
+                            </form>
+                            <form method="post" action="{{ url_for('responder_solicitud', request_id=request.id, action='rechazar') }}">
+                                <button class="button" type="submit">Rechazar</button>
+                            </form>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty">No tienes solicitudes recibidas.</p>
+        {% endif %}
+    </div>
+
+    <div class="panel">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Enviadas</p>
+                <h2>Solicitudes enviadas</h2>
+            </div>
+        </div>
+
+        {% if sent_requests %}
+            <div class="simple-list">
+                {% for request in sent_requests %}
+                    <article class="list-item">
+                        <div>
+                            <strong>{{ request.username }}</strong>
+                            <span>Esperando respuesta</span>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty">No tienes solicitudes enviadas.</p>
+        {% endif %}
+    </div>
+</section>
+
+<section class="panel">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Lista</p>
+            <h2>Mis amigos</h2>
+        </div>
+    </div>
+
+    {% if friends %}
+        <div class="simple-list">
+            {% for friend in friends %}
+                <article class="list-item">
+                    <div>
+                        <strong>{{ friend.username }}</strong>
+                        <span>{{ friend.duplicate_total }} repetidas registradas</span>
+                    </div>
+                    <div class="actions">
+                        <a class="button" href="{{ url_for('amigo_detalle', username=friend.username) }}">Perfil</a>
+                        <a class="button primary" href="{{ url_for('comparar', username=friend.username) }}">Comparar</a>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="empty">Todavía no tienes amigos aceptados.</p>
+    {% endif %}
+</section>
+{% endblock %}

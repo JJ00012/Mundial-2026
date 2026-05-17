@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}{{ team.name }} | PANINI DF{% endblock %}
+
+{% block content %}
+<section class="country-header">
+    <div>
+        <p class="eyebrow">Grupo {{ team.group }}</p>
+        <h1>{{ team.name }}</h1>
+        <p>{{ progress.obtained }} obtenidas · {{ progress.missing }} faltantes · {{ progress.percent }}%</p>
+    </div>
+    <a class="button" href="{{ url_for('repetidas', team_code=team.code) }}">Ver repetidas de {{ team.name }}</a>
+</section>
+
+<section class="panel">
+    <p class="help-text">Marca aquí las láminas que ya tienes. Si tienes repetidas, usa los botones de intercambio.</p>
+    <div class="progress large-progress">
+        <span style="width: {{ progress.percent }}%"></span>
+    </div>
+
+    <div class="sticker-grid">
+        {% for sticker in stickers %}
+            <article class="sticker-card {% if sticker.owned %}owned{% else %}missing{% endif %}">
+                <strong>{{ sticker.code }}</strong>
+                <span>{{ sticker.name }}</span>
+                <small>{{ sticker.type }}</small>
+
+                <form method="post" action="{{ url_for('toggle_lamina', code=sticker.code) }}">
+                    <button class="button primary" type="submit">{{ "Quitar de mi álbum" if sticker.owned else "Ya la tengo" }}</button>
+                </form>
+
+                <div class="repeat-box">
+                    <p>{{ sticker.duplicates }} repetida{{ "" if sticker.duplicates == 1 else "s" }}</p>
+                    <div class="repeat-actions">
+                        <form method="post" action="{{ url_for('sumar_repetida', code=sticker.code) }}">
+                            <button type="submit">Agregar repetida</button>
+                        </form>
+                        <form method="post" action="{{ url_for('restar_repetida', code=sticker.code) }}">
+                            <button type="submit">Quitar repetida</button>
+                        </form>
+                    </div>
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

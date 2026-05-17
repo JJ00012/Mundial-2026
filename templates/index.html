@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio | PANINI DF{% endblock %}
+
+{% block content %}
+<section class="hero easy-hero">
+    <div class="hero-logo-wrap">
+        <img class="hero-logo" src="{{ url_for('static', filename='panini-df-logo.png') }}" alt="Logo PANINI DF">
+    </div>
+    <div class="hero-content">
+        <p class="eyebrow">Álbum virtual del Mundial 2026</p>
+        <h1>PANINI DF</h1>
+        <p class="hero-copy">Bienvenido, {{ username }}. Aquí puedes marcar tus láminas, revisar repetidas y comparar con amigos de forma sencilla.</p>
+        <div class="hero-actions">
+            <a class="button primary big-action" href="{{ url_for('album') }}">Abrir mi álbum</a>
+            <a class="button light big-action" href="{{ url_for('repetidas') }}">Ver repetidas</a>
+        </div>
+    </div>
+</section>
+
+<section class="panel stats-panel">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Mis números</p>
+            <h2>Resumen fácil de leer</h2>
+            <p class="help-text">Estas tarjetas se actualizan solas cuando marcas o quitas láminas.</p>
+        </div>
+        <strong class="percent-pill">{{ progress.percent }}% completo</strong>
+    </div>
+
+    <div class="progress large-progress" aria-label="Progreso del álbum">
+        <span style="width: {{ progress.percent }}%"></span>
+    </div>
+
+    <div class="stats-grid easy-stats">
+        <article class="stat total">
+            <span>Láminas totales</span>
+            <strong>{{ progress.total_stickers }}</strong>
+            <small>Todo el álbum</small>
+        </article>
+        <article class="stat owned">
+            <span>Tengo en mi álbum</span>
+            <strong>{{ progress.owned_count }}</strong>
+            <small>Láminas marcadas</small>
+        </article>
+        <article class="stat repeated">
+            <span>Láminas repetidas</span>
+            <strong>{{ progress.duplicate_total }}</strong>
+            <small>Para intercambiar</small>
+        </article>
+        <article class="stat missing">
+            <span>Me faltan</span>
+            <strong>{{ progress.missing_count }}</strong>
+            <small>Por conseguir</small>
+        </article>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Pasos rápidos</p>
+            <h2>¿Qué quieres hacer?</h2>
+        </div>
+    </div>
+
+    <div class="quick-grid">
+        <a class="quick-card" href="{{ url_for('album') }}">
+            <strong>Marcar láminas</strong>
+            <span>Abre tu álbum y toca “Ya la tengo”.</span>
+        </a>
+        <a class="quick-card" href="{{ url_for('repetidas') }}">
+            <strong>Ver repetidas</strong>
+            <span>Consulta las láminas que puedes cambiar.</span>
+        </a>
+        <a class="quick-card" href="{{ url_for('amigos') }}">
+            <strong>Buscar amigos</strong>
+            <span>Agrega amigos para comparar intercambios.</span>
+        </a>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Grupos A-L</p>
+            <h2>Entrar por grupo</h2>
+        </div>
+    </div>
+
+    <div class="group-grid">
+        {% for group in groups %}
+            <a class="group-card" href="{{ url_for('grupo', letter=group.letter) }}">
+                <span>Grupo {{ group.letter }}</span>
+                <strong>{{ group.percent }}%</strong>
+                <small>{{ group.obtained }} de {{ group.total }} láminas</small>
+            </a>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,22 @@
+{
+    "juan": {
+        "password": "scrypt:32768:8:1$MubkhEID2bihvY32$596efae45ec67b0ace0911e6d231252541ce0c1e15bae93dad43deb2f810355dbfe9ffd50bea7fa4ab60039e004180285ed3d489e26faff8c2efb2c1b6fbf9c2",
+        "owned": [],
+        "duplicates": {},
+        "friends": []
+    },
+    "juanjosé26743": {
+        "password": "scrypt:32768:8:1$nwXkpsoXltczJayZ$7746d5da4c6fdcb8d5fb05756fc1999f9c30cbefa16b6b4db75453ea3569b0e30af8a28e45be97ba198fadfcf9f5b33be778a7b71155eb10869fcc52e5f78930",
+        "owned": [],
+        "duplicates": {},
+        "friends": []
+    },
+    "dsadas": {
+        "password": "scrypt:32768:8:1$a72ES270IguH4VNm$71aaf23d7d71d5ded5740670e987432d79898d2ac3ed305743ba635a47f4f98f125a77ed36dce823b3222b5c9d45bc10826eab127c895cee6ca582027d9e3906",
+        "owned": [
+            "CZE 1"
+        ],
+        "duplicates": {},
+        "friends": []
+    }
+}

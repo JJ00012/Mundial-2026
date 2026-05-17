@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Grupo {{ group.letter }} | PANINI DF{% endblock %}
+
+{% block content %}
+<section class="page-title">
+    <div>
+        <p class="eyebrow">Grupo {{ group.letter }}</p>
+        <h1>Selecciones del grupo</h1>
+        <p>{{ group.progress.obtained }} obtenidas · {{ group.progress.missing }} faltantes</p>
+    </div>
+    <strong class="percent-pill">{{ group.progress.percent }}%</strong>
+</section>
+
+<section class="panel group-summary-panel">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Progreso del grupo</p>
+            <h2>{{ group.progress.percent }}% completado</h2>
+        </div>
+        <span>{{ group.progress.obtained }} de {{ group.progress.total }} láminas</span>
+    </div>
+    <div class="progress large-progress">
+        <span style="width: {{ group.progress.percent }}%"></span>
+    </div>
+</section>
+
+<section class="panel">
+    <p class="help-text">Toca una selección para ver sus láminas.</p>
+    <div class="team-grid">
+        {% for team in group.teams %}
+            <a class="team-card large" href="{{ url_for('pais', code=team.code) }}">
+                <span class="team-code">{{ team.code }}</span>
+                <strong>{{ team.name }}</strong>
+                <small>{{ team.progress.obtained }} obtenidas · {{ team.progress.missing }} faltantes · {{ team.progress.percent }}%</small>
+                <div class="mini-progress"><span style="width: {{ team.progress.percent }}%"></span></div>
+            </a>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

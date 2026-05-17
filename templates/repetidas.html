@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Repetidas | PANINI DF{% endblock %}
+
+{% block content %}
+<section class="page-title">
+    <div>
+        <p class="eyebrow">{% if friend %}Perfil de amigo{% else %}Intercambio{% endif %}</p>
+        <h1>{% if friend %}Repetidas de {{ friend }}{% elif selected_specials %}Láminas especiales repetidas{% elif selected_team %}Repetidas de {{ selected_team.name }}{% else %}Mis repetidas{% endif %}</h1>
+        <p>Abre un grupo para encontrar intercambios más rápido.</p>
+    </div>
+</section>
+
+{% if teams %}
+    <section class="filter-row easy-filter">
+        <a class="chip" href="{{ url_for('repetidas') }}">Todas</a>
+        <a class="chip {% if selected_specials %}active{% endif %}" href="{{ url_for('repetidas', team_code='SPECIALS') }}">Especiales</a>
+        {% for team in teams %}
+            <a class="chip {% if selected_team and selected_team.code == team.code %}active{% endif %}" href="{{ url_for('repetidas', team_code=team.code) }}">{{ team.code }}</a>
+        {% endfor %}
+    </section>
+{% endif %}
+
+{% if grouped %}
+    {% for group in grouped %}
+        <details class="collapsible" {% if loop.first %}open{% endif %} data-collapsible>
+            <summary class="collapsible-summary">
+                <div class="summary-main">
+                    <p class="eyebrow">{{ group.name }}</p>
+                    <h2>Repetidas disponibles</h2>
+                    <small>{{ group.teams|length }} selección{{ "" if group.teams|length == 1 else "es" }}</small>
+                </div>
+                <span class="toggle-label" data-toggle-label>{{ "Ocultar" if loop.first else "Ver más" }}</span>
+            </summary>
+
+            <div class="collapsible-body">
+                {% for team in group.teams %}
+                    <details class="collapsible nested-collapsible" {% if loop.first %}open{% endif %} data-collapsible>
+                        <summary class="collapsible-summary team-summary">
+                            <div class="summary-main">
+                                <h3>{{ team.name }}</h3>
+                                <small>{{ team.stickers|length }} lámina{{ "" if team.stickers|length == 1 else "s" }} repetida{{ "" if team.stickers|length == 1 else "s" }}</small>
+                            </div>
+                            <span class="toggle-label" data-toggle-label>{{ "Ocultar" if loop.first else "Ver más" }}</span>
+                        </summary>
+
+                        <div class="collapsible-body simple-list">
+                            {% for sticker in team.stickers %}
+                                <article class="list-item repeated-item">
+                                    <div>
+                                        <strong>{{ sticker.code }}</strong>
+                                        <span>{{ sticker.name }}</span>
+                                        <small>{{ sticker.type }}</small>
+                                    </div>
+                                    <b class="counter">{{ sticker.duplicates }} repetida{{ "" if sticker.duplicates == 1 else "s" }}</b>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    </details>
+                {% endfor %}
+            </div>
+        </details>
+    {% endfor %}
+{% else %}
+    <section class="panel">
+        <p class="empty">No hay repetidas para mostrar.</p>
+    </section>
+{% endif %}
+{% endblock %}

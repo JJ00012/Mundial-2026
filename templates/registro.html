@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Registro | PANINI DF{% endblock %}
+
+{% block content %}
+<section class="auth-card">
+    <img class="auth-logo" src="{{ url_for('static', filename='panini-df-logo.png') }}" alt="Logo PANINI DF">
+    <p class="eyebrow">Nuevo coleccionista</p>
+    <h1>Crear cuenta</h1>
+    <p class="help-text">Crea una cuenta sencilla para guardar tu progreso.</p>
+    <form method="post" class="form">
+        <label>Usuario
+            <input type="text" name="username" autocomplete="username" required>
+        </label>
+        <label>Contraseña
+            <input type="password" name="password" autocomplete="new-password" required>
+        </label>
+        <button class="button primary big-action" type="submit">Crear mi álbum</button>
+    </form>
+    <p class="muted">¿Ya tienes cuenta? <a href="{{ url_for('login') }}">Ingresar</a>.</p>
+</section>
+{% endblock %}

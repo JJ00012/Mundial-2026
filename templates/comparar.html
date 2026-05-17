@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Comparar con {{ friend }} | Mundial 2026{% endblock %}
+
+{% block content %}
+<section class="page-title">
+    <p class="eyebrow">Comparación</p>
+    <h1>Láminas que te faltan y {{ friend }} tiene repetidas</h1>
+    <p>Esta lista muestra oportunidades directas de intercambio.</p>
+</section>
+
+<section class="panel">
+    {% if useful %}
+        <div class="simple-list">
+            {% for sticker in useful %}
+                <article class="list-item trade-item">
+                    <div>
+                        <strong>{{ sticker.code }}</strong>
+                        <span>{{ sticker.name }}</span>
+                        <small>{{ sticker.team_name }} · Grupo {{ sticker.group }}</small>
+                    </div>
+                    <b class="counter">{{ sticker.duplicates }} rep.</b>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="empty">No hay coincidencias por ahora.</p>
+    {% endif %}
+</section>
+{% endblock %}

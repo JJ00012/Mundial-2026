@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Mi álbum | PANINI DF{% endblock %}
+
+{% block content %}
+<section class="page-title album-title">
+    <div>
+        <p class="eyebrow">Mi álbum</p>
+        <h1>Marca las láminas que ya tienes</h1>
+        <p>Abre solo la sección que vas a revisar. Así el álbum es más cómodo en celular.</p>
+    </div>
+</section>
+
+<section class="panel stats-panel compact-stats">
+    <div class="stats-grid easy-stats">
+        <article class="stat total">
+            <span>Total del álbum</span>
+            <strong>{{ progress.total_stickers }}</strong>
+        </article>
+        <article class="stat owned">
+            <span>Tengo</span>
+            <strong>{{ progress.owned_count }}</strong>
+        </article>
+        <article class="stat repeated">
+            <span>Repetidas</span>
+            <strong>{{ progress.duplicate_total }}</strong>
+        </article>
+        <article class="stat missing">
+            <span>Me faltan</span>
+            <strong>{{ progress.missing_count }}</strong>
+        </article>
+    </div>
+</section>
+
+<details class="collapsible special-panel" open data-collapsible>
+    <summary class="collapsible-summary">
+        <div class="summary-main">
+            <p class="eyebrow">Láminas especiales</p>
+            <h2>Especiales del álbum</h2>
+            <small>20 láminas especiales</small>
+        </div>
+        <span class="toggle-label" data-toggle-label>Ocultar</span>
+    </summary>
+
+    <div class="collapsible-body">
+        <div class="section-heading compact-heading">
+            <p class="help-text">También puedes marcar especiales como obtenidas o repetidas.</p>
+            <a class="button" href="{{ url_for('repetidas', team_code='SPECIALS') }}">Ver especiales repetidas</a>
+        </div>
+
+        <div class="sticker-grid special-grid">
+            {% for sticker in specials %}
+                <article class="sticker-card special-card {% if sticker.owned %}owned{% else %}missing{% endif %}">
+                    <strong>{{ sticker.code }}</strong>
+                    <span>{{ sticker.name }}</span>
+                    <small>{{ sticker.type }}</small>
+
+                    <form method="post" action="{{ url_for('toggle_lamina', code=sticker.code) }}">
+                        <button class="button primary" type="submit">
+                            {{ "Quitar de mi álbum" if sticker.owned else "Ya la tengo" }}
+                        </button>
+                    </form>
+
+                    <div class="repeat-box">
+                        <p>{{ sticker.duplicates }} repetida{{ "" if sticker.duplicates == 1 else "s" }}</p>
+                        <div class="repeat-actions">
+                            <form method="post" action="{{ url_for('sumar_repetida', code=sticker.code) }}">
+                                <button type="submit">Agregar repetida</button>
+                            </form>
+                            <form method="post" action="{{ url_for('restar_repetida', code=sticker.code) }}">
+                                <button type="submit">Quitar repetida</button>
+                            </form>
+                        </div>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    </div>
+</details>
+
+{% for group in album.groups %}
+    <details class="collapsible" {% if loop.first %}open{% endif %} data-collapsible>
+        <summary class="collapsible-summary">
+            <div class="summary-main">
+                <p class="eyebrow">Grupo {{ group.letter }}</p>
+                <h2>{{ group.progress.percent }}% completado</h2>
+                <small>{{ group.progress.obtained }} de {{ group.progress.total }} láminas</small>
+                <div class="summary-progress">
+                    <span style="width: {{ group.progress.percent }}%"></span>
+                </div>
+            </div>
+            <span class="toggle-label" data-toggle-label>{{ "Ocultar" if loop.first else "Ver más" }}</span>
+        </summary>
+
+        <div class="collapsible-body">
+            <div class="section-heading compact-heading">
+                <p class="help-text">Elige una selección para marcar sus láminas.</p>
+                <a class="button primary" href="{{ url_for('grupo', letter=group.letter) }}">Abrir grupo {{ group.letter }}</a>
+            </div>
+            <div class="team-grid">
+                {% for team in group.teams %}
+                    <a class="team-card" href="{{ url_for('pais', code=team.code) }}">
+                        <span class="team-code">{{ team.code }}</span>
+                        <strong>{{ team.name }}</strong>
+                        <small>{{ team.progress.obtained }} de {{ team.progress.total }} láminas · {{ team.progress.percent }}%</small>
+                        <div class="mini-progress"><span style="width: {{ team.progress.percent }}%"></span></div>
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </details>
+{% endfor %}
+{% endblock %}
