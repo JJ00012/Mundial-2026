@@ -136,6 +136,18 @@ def init_db():
                 FOREIGN KEY (user_id) REFERENCES users(id),
                 FOREIGN KEY (friend_id) REFERENCES users(id)
             );
+
+            CREATE INDEX IF NOT EXISTS idx_friend_requests_receiver_status
+                ON friend_requests(receiver_id, status);
+
+            CREATE INDEX IF NOT EXISTS idx_friend_requests_sender_status
+                ON friend_requests(sender_id, status);
+
+            CREATE INDEX IF NOT EXISTS idx_owned_stickers_user_id
+                ON owned_stickers(user_id);
+
+            CREATE INDEX IF NOT EXISTS idx_duplicate_stickers_user_id
+                ON duplicate_stickers(user_id);
             """
 
     postgres_schema = """
@@ -173,6 +185,18 @@ def init_db():
                 created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (user_id, friend_id)
             );
+
+            CREATE INDEX IF NOT EXISTS idx_friend_requests_receiver_status
+                ON friend_requests(receiver_id, status);
+
+            CREATE INDEX IF NOT EXISTS idx_friend_requests_sender_status
+                ON friend_requests(sender_id, status);
+
+            CREATE INDEX IF NOT EXISTS idx_owned_stickers_user_id
+                ON owned_stickers(user_id);
+
+            CREATE INDEX IF NOT EXISTS idx_duplicate_stickers_user_id
+                ON duplicate_stickers(user_id);
             """
 
     with get_db() as db:
@@ -328,9 +352,62 @@ def get_duplicates(user_id):
     return {row["sticker_code"]: row["quantity"] for row in rows}
 
 
-def calculate_progress(user_id, stickers):
-    owned = get_owned_codes(user_id)
-    duplicates = get_duplicates(user_id)
+def get_user_sticker_data(user_id):
+    """Carga obtenidas y repetidas con una sola conexión para vistas grandes."""
+    with get_db() as db:
+        owned_rows = db.execute(
+            "SELECT sticker_code FROM owned_stickers WHERE user_id = ?",
+            (user_id,),
+        ).fetchall()
+        duplicate_rows = db.execute(
+            "SELECT sticker_code, quantity FROM duplicate_stickers WHERE user_id = ? AND quantity > 0",
+            (user_id,),
+        ).fetchall()
+
+    owned = {row["sticker_code"] for row in owned_rows}
+    duplicates = {row["sticker_code"]: row["quantity"] for row in duplicate_rows}
+    return owned, duplicates
+
+
+def get_owned_for_users(user_ids):
+    if not user_ids:
+        return {}
+
+    placeholders = ", ".join(["?"] * len(user_ids))
+    with get_db() as db:
+        rows = db.execute(
+            f"SELECT user_id, sticker_code FROM owned_stickers WHERE user_id IN ({placeholders})",
+            tuple(user_ids),
+        ).fetchall()
+
+    owned_by_user = {user_id: set() for user_id in user_ids}
+    for row in rows:
+        owned_by_user[row["user_id"]].add(row["sticker_code"])
+    return owned_by_user
+
+
+def get_duplicates_for_users(user_ids):
+    if not user_ids:
+        return {}
+
+    placeholders = ", ".join(["?"] * len(user_ids))
+    with get_db() as db:
+        rows = db.execute(
+            f"""
+            SELECT user_id, sticker_code, quantity
+            FROM duplicate_stickers
+            WHERE user_id IN ({placeholders}) AND quantity > 0
+            """,
+            tuple(user_ids),
+        ).fetchall()
+
+    duplicates_by_user = {user_id: {} for user_id in user_ids}
+    for row in rows:
+        duplicates_by_user[row["user_id"]][row["sticker_code"]] = row["quantity"]
+    return duplicates_by_user
+
+
+def calculate_progress(stickers, owned, duplicates):
     total = len(stickers)
     obtained = len([sticker for sticker in stickers if sticker["code"] in owned])
     missing = total - obtained
@@ -348,21 +425,20 @@ def calculate_progress(user_id, stickers):
     }
 
 
-def team_progress(user_id, team):
-    owned = get_owned_codes(user_id)
+def team_progress(team, owned):
     total = len(team.get("stickers", []))
     obtained = len([sticker for sticker in team.get("stickers", []) if sticker["code"] in owned])
     percent = round((obtained / total) * 100, 1) if total else 0
     return {"total": total, "obtained": obtained, "missing": total - obtained, "percent": percent}
 
 
-def group_progress(user_id, group):
+def group_progress(group, owned):
     """Calcula el avance total de un grupo sumando sus selecciones."""
     total = 0
     obtained = 0
 
     for team in group.get("teams", []):
-        data = team_progress(user_id, team)
+        data = team_progress(team, owned)
         total += data["total"]
         obtained += data["obtained"]
 
@@ -370,9 +446,7 @@ def group_progress(user_id, group):
     return {"total": total, "obtained": obtained, "missing": total - obtained, "percent": percent}
 
 
-def stickers_with_status(stickers, user_id):
-    owned = get_owned_codes(user_id)
-    duplicates = get_duplicates(user_id)
+def stickers_with_status(stickers, owned, duplicates):
     enriched = []
 
     for sticker in stickers:
@@ -463,6 +537,9 @@ def get_requests_for_user(user_id):
 
 def group_repeated_stickers(stickers, duplicates):
     grouped = []
+    group_lookup = {}
+    team_lookup = {}
+
     for sticker in stickers:
         amount = duplicates.get(sticker["code"], 0)
         if amount <= 0:
@@ -470,14 +547,18 @@ def group_repeated_stickers(stickers, duplicates):
 
         group_name = f"Grupo {sticker['group']}" if sticker["group"] != "Especiales" else "Especiales"
         team_name = sticker.get("team_name", "Especiales")
-        group_entry = next((item for item in grouped if item["name"] == group_name), None)
+
+        group_entry = group_lookup.get(group_name)
         if not group_entry:
             group_entry = {"name": group_name, "teams": []}
+            group_lookup[group_name] = group_entry
             grouped.append(group_entry)
 
-        team_entry = next((item for item in group_entry["teams"] if item["name"] == team_name), None)
+        team_key = (group_name, team_name)
+        team_entry = team_lookup.get(team_key)
         if not team_entry:
             team_entry = {"name": team_name, "stickers": []}
+            team_lookup[team_key] = team_entry
             group_entry["teams"].append(team_entry)
 
         sticker_copy = sticker.copy()
@@ -492,12 +573,13 @@ def group_repeated_stickers(stickers, duplicates):
 def index():
     album = load_album()
     user = get_current_user()
+    owned, duplicates = get_user_sticker_data(user["id"])
     stickers = album_stickers(album)
-    progress = calculate_progress(user["id"], stickers)
+    progress = calculate_progress(stickers, owned, duplicates)
 
     groups = []
     for group in album.get("groups", []):
-        data = group_progress(user["id"], group)
+        data = group_progress(group, owned)
 
         groups.append({
             "letter": group["letter"],
@@ -579,14 +661,15 @@ def logout():
 def album():
     album_data = load_album()
     user = get_current_user()
-    progress = calculate_progress(user["id"], album_stickers(album_data))
+    owned, duplicates = get_user_sticker_data(user["id"])
+    progress = calculate_progress(album_stickers(album_data), owned, duplicates)
 
     for group in album_data.get("groups", []):
-        group["progress"] = group_progress(user["id"], group)
+        group["progress"] = group_progress(group, owned)
         for team in group.get("teams", []):
-            team["progress"] = team_progress(user["id"], team)
+            team["progress"] = team_progress(team, owned)
 
-    specials = stickers_with_status(album_data.get("specials", []), user["id"])
+    specials = stickers_with_status(album_data.get("specials", []), owned, duplicates)
     return render_template("album.html", album=album_data, specials=specials, progress=progress)
 
 
@@ -595,14 +678,15 @@ def album():
 def grupo(letter):
     album_data = load_album()
     user = get_current_user()
+    owned = get_owned_codes(user["id"])
     group = find_group(album_data, letter)
     if not group:
         flash("Grupo no encontrado.", "danger")
         return redirect(url_for("album"))
 
-    group["progress"] = group_progress(user["id"], group)
+    group["progress"] = group_progress(group, owned)
     for team in group.get("teams", []):
-        team["progress"] = team_progress(user["id"], team)
+        team["progress"] = team_progress(team, owned)
 
     return render_template("grupo.html", group=group)
 
@@ -612,13 +696,14 @@ def grupo(letter):
 def pais(code):
     album_data = load_album()
     user = get_current_user()
+    owned, duplicates = get_user_sticker_data(user["id"])
     team = find_team(album_data, code)
     if not team:
         flash("Selección no encontrada.", "danger")
         return redirect(url_for("album"))
 
-    stickers = stickers_with_status(team.get("stickers", []), user["id"])
-    progress = team_progress(user["id"], team)
+    stickers = stickers_with_status(team.get("stickers", []), owned, duplicates)
+    progress = team_progress(team, owned)
     return render_template("pais.html", team=team, stickers=stickers, progress=progress)
 
 
@@ -651,17 +736,23 @@ def toggle_lamina(code):
 @app.post("/lamina/<code>/repetida/sumar")
 @login_required
 def sumar_repetida(code):
-    with get_db() as db:
-        db.execute(
+    if USE_POSTGRES:
+        sql = """
+            INSERT INTO duplicate_stickers (user_id, sticker_code, quantity)
+            VALUES (?, ?, 1)
+            ON CONFLICT (user_id, sticker_code)
+            DO UPDATE SET quantity = duplicate_stickers.quantity + 1
             """
+    else:
+        sql = """
             INSERT INTO duplicate_stickers (user_id, sticker_code, quantity)
             VALUES (?, ?, 1)
             ON CONFLICT(user_id, sticker_code)
             DO UPDATE SET quantity = quantity + 1
-            """,
-            (session["user_id"], code),
-        )
+            """
 
+    with get_db() as db:
+        db.execute(sql, (session["user_id"], code))
     flash("Repetida agregada.", "success")
     return redirect(request.referrer or url_for("repetidas"))
 
@@ -697,7 +788,7 @@ def restar_repetida(code):
 def repetidas(team_code=None):
     album_data = load_album()
     stickers = album_stickers(album_data)
-    duplicates = get_duplicates(session["user_id"])
+    duplicates = get_duplicates_for_users([session["user_id"]])[session["user_id"]]
     teams = [team for group in album_data.get("groups", []) for team in group.get("teams", [])]
     selected_specials = bool(team_code and team_code.upper() == "SPECIALS")
     selected_team = find_team(album_data, team_code) if team_code and not selected_specials else None
@@ -818,7 +909,8 @@ def amigo_detalle(username):
 
     album_data = load_album()
     stickers = album_stickers(album_data)
-    grouped = group_repeated_stickers(stickers, get_duplicates(friend["id"]))
+    friend_duplicates = get_duplicates_for_users([friend["id"]])[friend["id"]]
+    grouped = group_repeated_stickers(stickers, friend_duplicates)
     return render_template(
         "repetidas.html",
         grouped=grouped,
@@ -839,8 +931,10 @@ def comparar(username):
 
     album_data = load_album()
     stickers = album_stickers(album_data)
-    my_owned = get_owned_codes(session["user_id"])
-    friend_duplicates = get_duplicates(friend["id"])
+    owned_by_user = get_owned_for_users([session["user_id"]])
+    duplicates_by_user = get_duplicates_for_users([friend["id"]])
+    my_owned = owned_by_user[session["user_id"]]
+    friend_duplicates = duplicates_by_user[friend["id"]]
 
     useful = []
     for sticker in stickers:
