@@ -29,7 +29,7 @@
     <p class="help-text">Toca una selección para ver sus láminas.</p>
     <div class="team-grid">
         {% for team in group.teams %}
-            <a class="team-card large" href="{{ url_for('pais', code=team.code) }}">
+            <a class="team-card large" id="team-{{ team.code }}" href="{{ url_for('pais', code=team.code) }}">
                 <span class="team-code">{{ team.code }}</span>
                 <strong>{{ team.name }}</strong>
                 <small>{{ team.progress.obtained }} obtenidas · {{ team.progress.missing }} faltantes · {{ team.progress.percent }}%</small>

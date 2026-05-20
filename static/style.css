@@ -349,6 +349,13 @@ a {
     align-items: center;
 }
 
+.header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
 .section-heading h2,
 .page-title h1 {
     margin: 0;
@@ -676,6 +683,81 @@ button.primary {
     flex-direction: column;
 }
 
+.inline-feedback {
+    min-height: 20px;
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.35;
+}
+
+.inline-feedback.success {
+    color: var(--green-dark);
+}
+
+.inline-feedback.error {
+    color: var(--red);
+}
+
+.compact-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 18px;
+}
+
+.compact-summary-card {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+    background: #fff;
+    border: 2px solid var(--line);
+    border-radius: 8px;
+}
+
+.compact-summary-title {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: baseline;
+}
+
+.compact-summary-title strong {
+    color: var(--black);
+    font-size: 18px;
+}
+
+.compact-summary-title span,
+.compact-empty {
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.compact-code-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.compact-code {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 6px 10px;
+    color: var(--black);
+    background: #fff8df;
+    border: 1px solid rgba(242, 183, 46, 0.7);
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 900;
+}
+
+.compact-empty {
+    margin: 0;
+}
+
 .form,
 .inline-form {
     display: grid;
@@ -804,6 +886,20 @@ input:focus {
     border-left: 8px solid var(--blue);
 }
 
+.compact-list-item {
+    min-height: 0;
+    padding: 12px 14px;
+}
+
+.compact-list-item strong {
+    font-size: 20px;
+}
+
+.compact-list-item .counter {
+    padding: 7px 10px;
+    font-size: 14px;
+}
+
 .empty {
     margin: 0;
     color: var(--muted);
@@ -850,6 +946,7 @@ input:focus {
 
     .stats-grid,
     .quick-grid,
+    .compact-summary-grid,
     .inline-form,
     .two-column {
         grid-template-columns: 1fr;
@@ -938,7 +1035,46 @@ input:focus {
 
     .sticker-card {
         min-height: auto;
-        padding: 16px;
+        gap: 10px;
+        padding: 14px;
+    }
+
+    .sticker-card strong {
+        font-size: 24px;
+    }
+
+    .repeat-box {
+        gap: 8px;
+        padding: 10px;
+    }
+
+    .repeat-actions {
+        gap: 8px;
+    }
+
+    .compact-summary-card,
+    .compact-list-item {
+        padding: 12px;
+    }
+
+    .compact-summary-title {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .compact-code-list {
+        gap: 6px;
+    }
+
+    .compact-code {
+        min-height: 32px;
+        padding: 5px 9px;
+        font-size: 14px;
+    }
+
+    .header-actions {
+        justify-content: stretch;
     }
 
     .button,

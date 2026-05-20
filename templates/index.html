@@ -54,6 +54,40 @@
             <small>Por conseguir</small>
         </article>
     </div>
+
+    <div class="compact-summary-grid">
+        <article class="compact-summary-card">
+            <div class="compact-summary-title">
+                <strong>Faltantes</strong>
+                <span>Primeras por revisar</span>
+            </div>
+            {% if compact_lists.missing %}
+                <div class="compact-code-list">
+                    {% for sticker in compact_lists.missing %}
+                        <span class="compact-code">{{ sticker.compact_code }}</span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="compact-empty">No tienes faltantes en esta lista.</p>
+            {% endif %}
+        </article>
+
+        <article class="compact-summary-card">
+            <div class="compact-summary-title">
+                <strong>Repetidas</strong>
+                <span>Para intercambio rápido</span>
+            </div>
+            {% if compact_lists.repeated %}
+                <div class="compact-code-list">
+                    {% for sticker in compact_lists.repeated %}
+                        <span class="compact-code">{{ sticker.compact_code }} ×{{ sticker.duplicates }}</span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="compact-empty">Aún no tienes repetidas.</p>
+            {% endif %}
+        </article>
+    </div>
 </section>
 
 <section class="panel">

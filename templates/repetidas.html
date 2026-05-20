@@ -46,11 +46,9 @@
 
                         <div class="collapsible-body simple-list">
                             {% for sticker in team.stickers %}
-                                <article class="list-item repeated-item">
+                                <article class="list-item repeated-item compact-list-item">
                                     <div>
-                                        <strong>{{ sticker.code }}</strong>
-                                        <span>{{ sticker.name }}</span>
-                                        <small>{{ sticker.type }}</small>
+                                        <strong>{{ sticker.compact_code }}</strong>
                                     </div>
                                     <b class="counter">{{ sticker.duplicates }} repetida{{ "" if sticker.duplicates == 1 else "s" }}</b>
                                 </article>

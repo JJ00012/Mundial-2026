@@ -13,10 +13,9 @@
     {% if useful %}
         <div class="simple-list">
             {% for sticker in useful %}
-                <article class="list-item trade-item">
+                <article class="list-item trade-item compact-list-item">
                     <div>
-                        <strong>{{ sticker.code }}</strong>
-                        <span>{{ sticker.name }}</span>
+                        <strong>{{ sticker.compact_code }}</strong>
                         <small>{{ sticker.team_name }} · Grupo {{ sticker.group }}</small>
                     </div>
                     <b class="counter">{{ sticker.duplicates }} rep.</b>

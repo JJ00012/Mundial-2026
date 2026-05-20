@@ -9,7 +9,10 @@
         <h1>{{ team.name }}</h1>
         <p>{{ progress.obtained }} obtenidas · {{ progress.missing }} faltantes · {{ progress.percent }}%</p>
     </div>
-    <a class="button" href="{{ url_for('repetidas', team_code=team.code) }}">Ver repetidas de {{ team.name }}</a>
+    <div class="header-actions">
+        <a class="button primary" href="{{ url_for('grupo', letter=team.group) }}#team-{{ team.code }}">Volver al grupo {{ team.group }}</a>
+        <a class="button" href="{{ url_for('repetidas', team_code=team.code) }}">Ver repetidas de {{ team.name }}</a>
+    </div>
 </section>
 
 <section class="panel">
@@ -20,26 +23,27 @@
 
     <div class="sticker-grid">
         {% for sticker in stickers %}
-            <article class="sticker-card {% if sticker.owned %}owned{% else %}missing{% endif %}">
+            <article class="sticker-card {% if sticker.owned %}owned{% else %}missing{% endif %}" data-sticker-card data-code="{{ sticker.code }}" data-owned="{{ 1 if sticker.owned else 0 }}" data-duplicates="{{ sticker.duplicates }}">
                 <strong>{{ sticker.code }}</strong>
                 <span>{{ sticker.name }}</span>
                 <small>{{ sticker.type }}</small>
 
-                <form method="post" action="{{ url_for('toggle_lamina', code=sticker.code) }}">
-                    <button class="button primary" type="submit">{{ "Quitar de mi álbum" if sticker.owned else "Ya la tengo" }}</button>
+                <form method="post" action="{{ url_for('toggle_lamina', code=sticker.code) }}" data-ajax-sticker data-action-type="toggle">
+                    <button class="button primary" type="submit" data-toggle-button>{{ "Quitar de mi álbum" if sticker.owned else "Ya la tengo" }}</button>
                 </form>
 
                 <div class="repeat-box">
-                    <p>{{ sticker.duplicates }} repetida{{ "" if sticker.duplicates == 1 else "s" }}</p>
+                    <p data-repeat-count>{{ sticker.duplicates }} repetida{{ "" if sticker.duplicates == 1 else "s" }}</p>
                     <div class="repeat-actions">
-                        <form method="post" action="{{ url_for('sumar_repetida', code=sticker.code) }}">
+                        <form method="post" action="{{ url_for('sumar_repetida', code=sticker.code) }}" data-ajax-sticker data-action-type="repeat-add">
                             <button type="submit">Agregar repetida</button>
                         </form>
-                        <form method="post" action="{{ url_for('restar_repetida', code=sticker.code) }}">
+                        <form method="post" action="{{ url_for('restar_repetida', code=sticker.code) }}" data-ajax-sticker data-action-type="repeat-remove">
                             <button type="submit">Quitar repetida</button>
                         </form>
                     </div>
                 </div>
+                <p class="inline-feedback" data-inline-feedback aria-live="polite"></p>
             </article>
         {% endfor %}
     </div>

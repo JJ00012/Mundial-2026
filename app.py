@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from functools import wraps
 from urllib.parse import urlparse, urlunparse
 
-from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 try:
@@ -27,10 +27,7 @@ USERS_FILE = os.path.join(DATA_DIR, "users.json")
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 USE_POSTGRES = bool(DATABASE_URL)
 IS_VERCEL = os.getenv("VERCEL") == "1"
-DB_FILE = os.getenv(
-    "SQLITE_PATH",
-    os.path.join(tempfile.gettempdir(), "album.db") if IS_VERCEL else os.path.join(DATA_DIR, "album.db"),
-)
+DB_FILE = os.path.join(BASE_DIR, "data", "album.db")
 
 
 def normalize_database_url(url):
@@ -289,6 +286,14 @@ def inject_user():
     return {"session_user": session.get("username")}
 
 
+def wants_json_response():
+    """Detecta acciones AJAX sin romper formularios HTML normales."""
+    return (
+        request.headers.get("X-Requested-With") == "fetch"
+        or "application/json" in request.headers.get("Accept", "")
+    )
+
+
 def album_stickers(album):
     """Convierte el catálogo editable en una lista plana de láminas."""
     stickers = []
@@ -425,6 +430,46 @@ def calculate_progress(stickers, owned, duplicates):
     }
 
 
+def compact_sticker_code(code):
+    """Muestra códigos cortos fáciles de leer: BRA #10, FW #1, etc."""
+    country = "".join(character for character in code if character.isalpha())
+    number = "".join(character for character in code if character.isdigit())
+
+    if country and number:
+        return f"{country} #{number}"
+    return code
+
+
+def compact_album_lists(stickers, owned, duplicates, limit=18):
+    missing = []
+    repeated = []
+
+    for sticker in stickers:
+        item = {
+            "code": sticker["code"],
+            "compact_code": compact_sticker_code(sticker["code"]),
+            "team_code": sticker.get("team_code", "SPECIALS"),
+            "team_name": sticker.get("team_name", "Especiales"),
+        }
+
+        if sticker["code"] not in owned and len(missing) < limit:
+            missing.append(item)
+
+        duplicate_amount = duplicates.get(sticker["code"], 0)
+        if duplicate_amount > 0 and len(repeated) < limit:
+            repeated_item = item.copy()
+            repeated_item["duplicates"] = duplicate_amount
+            repeated.append(repeated_item)
+
+    return {"missing": missing, "repeated": repeated}
+
+
+def user_progress_payload(user_id):
+    album = load_album()
+    owned, duplicates = get_user_sticker_data(user_id)
+    return calculate_progress(album_stickers(album), owned, duplicates)
+
+
 def team_progress(team, owned):
     total = len(team.get("stickers", []))
     obtained = len([sticker for sticker in team.get("stickers", []) if sticker["code"] in owned])
@@ -453,6 +498,7 @@ def stickers_with_status(stickers, owned, duplicates):
         sticker_copy = sticker.copy()
         sticker_copy["owned"] = sticker["code"] in owned
         sticker_copy["duplicates"] = duplicates.get(sticker["code"], 0)
+        sticker_copy["compact_code"] = compact_sticker_code(sticker["code"])
         enriched.append(sticker_copy)
 
     return enriched
@@ -563,6 +609,7 @@ def group_repeated_stickers(stickers, duplicates):
 
         sticker_copy = sticker.copy()
         sticker_copy["duplicates"] = amount
+        sticker_copy["compact_code"] = compact_sticker_code(sticker["code"])
         team_entry["stickers"].append(sticker_copy)
 
     return grouped
@@ -576,6 +623,7 @@ def index():
     owned, duplicates = get_user_sticker_data(user["id"])
     stickers = album_stickers(album)
     progress = calculate_progress(stickers, owned, duplicates)
+    compact_lists = compact_album_lists(stickers, owned, duplicates)
 
     groups = []
     for group in album.get("groups", []):
@@ -590,7 +638,13 @@ def index():
             "percent": data["percent"],
         })
 
-    return render_template("index.html", username=user["username"], progress=progress, groups=groups)
+    return render_template(
+        "index.html",
+        username=user["username"],
+        progress=progress,
+        groups=groups,
+        compact_lists=compact_lists,
+    )
 
 
 @app.route("/registro", methods=["GET", "POST"])
@@ -711,6 +765,9 @@ def pais(code):
 @login_required
 def toggle_lamina(code):
     user_id = session["user_id"]
+    owned_now = False
+    duplicate_count = 0
+
     with get_db() as db:
         exists = db.execute(
             "SELECT 1 FROM owned_stickers WHERE user_id = ? AND sticker_code = ?",
@@ -722,20 +779,42 @@ def toggle_lamina(code):
                 "DELETE FROM owned_stickers WHERE user_id = ? AND sticker_code = ?",
                 (user_id, code),
             )
-            flash("Lámina marcada como faltante.", "success")
+            db.execute(
+                "DELETE FROM duplicate_stickers WHERE user_id = ? AND sticker_code = ?",
+                (user_id, code),
+            )
+            message = "Lámina marcada como faltante."
         else:
             db.execute(
                 "INSERT INTO owned_stickers (user_id, sticker_code) VALUES (?, ?)",
                 (user_id, code),
             )
-            flash("Lámina marcada como obtenida.", "success")
+            row = db.execute(
+                "SELECT quantity FROM duplicate_stickers WHERE user_id = ? AND sticker_code = ?",
+                (user_id, code),
+            ).fetchone()
+            duplicate_count = row["quantity"] if row else 0
+            owned_now = True
+            message = "Lámina marcada como obtenida."
 
+    if wants_json_response():
+        return jsonify({
+            "ok": True,
+            "code": code,
+            "owned": owned_now,
+            "duplicates": duplicate_count,
+            "progress": user_progress_payload(user_id),
+            "message": message,
+        })
+
+    flash(message, "success")
     return redirect(request.referrer or url_for("album"))
 
 
 @app.post("/lamina/<code>/repetida/sumar")
 @login_required
 def sumar_repetida(code):
+    user_id = session["user_id"]
     if USE_POSTGRES:
         sql = """
             INSERT INTO duplicate_stickers (user_id, sticker_code, quantity)
@@ -752,8 +831,44 @@ def sumar_repetida(code):
             """
 
     with get_db() as db:
-        db.execute(sql, (session["user_id"], code))
-    flash("Repetida agregada.", "success")
+        owned = db.execute(
+            "SELECT 1 FROM owned_stickers WHERE user_id = ? AND sticker_code = ?",
+            (user_id, code),
+        ).fetchone()
+
+        if not owned:
+            message = "No puedes marcar esta lámina como repetida porque aún no la tienes en tu álbum."
+            if wants_json_response():
+                return jsonify({
+                    "ok": False,
+                    "code": code,
+                    "owned": False,
+                    "duplicates": 0,
+                    "message": message,
+                }), 400
+
+            flash(message, "warning")
+            return redirect(request.referrer or url_for("album"))
+
+        db.execute(sql, (user_id, code))
+        row = db.execute(
+            "SELECT quantity FROM duplicate_stickers WHERE user_id = ? AND sticker_code = ?",
+            (user_id, code),
+        ).fetchone()
+
+    duplicate_count = row["quantity"] if row else 0
+    message = "Repetida agregada."
+    if wants_json_response():
+        return jsonify({
+            "ok": True,
+            "code": code,
+            "owned": True,
+            "duplicates": duplicate_count,
+            "progress": user_progress_payload(user_id),
+            "message": message,
+        })
+
+    flash(message, "success")
     return redirect(request.referrer or url_for("repetidas"))
 
 
@@ -761,6 +876,8 @@ def sumar_repetida(code):
 @login_required
 def restar_repetida(code):
     user_id = session["user_id"]
+    duplicate_count = 0
+
     with get_db() as db:
         row = db.execute(
             "SELECT quantity FROM duplicate_stickers WHERE user_id = ? AND sticker_code = ?",
@@ -768,6 +885,7 @@ def restar_repetida(code):
         ).fetchone()
 
         if row and row["quantity"] > 1:
+            duplicate_count = row["quantity"] - 1
             db.execute(
                 "UPDATE duplicate_stickers SET quantity = quantity - 1 WHERE user_id = ? AND sticker_code = ?",
                 (user_id, code),
@@ -778,7 +896,17 @@ def restar_repetida(code):
                 (user_id, code),
             )
 
-    flash("Repetida actualizada.", "success")
+    message = "Repetida actualizada."
+    if wants_json_response():
+        return jsonify({
+            "ok": True,
+            "code": code,
+            "duplicates": duplicate_count,
+            "progress": user_progress_payload(user_id),
+            "message": message,
+        })
+
+    flash(message, "success")
     return redirect(request.referrer or url_for("repetidas"))
 
 
@@ -942,6 +1070,7 @@ def comparar(username):
         if sticker["code"] not in my_owned and amount > 0:
             sticker_copy = sticker.copy()
             sticker_copy["duplicates"] = amount
+            sticker_copy["compact_code"] = compact_sticker_code(sticker["code"])
             useful.append(sticker_copy)
 
     return render_template("comparar.html", friend=friend["username"], useful=useful)
