@@ -1,22 +1,87 @@
 {
-    "juan": {
-        "password": "scrypt:32768:8:1$MubkhEID2bihvY32$596efae45ec67b0ace0911e6d231252541ce0c1e15bae93dad43deb2f810355dbfe9ffd50bea7fa4ab60039e004180285ed3d489e26faff8c2efb2c1b6fbf9c2",
-        "owned": [],
-        "duplicates": {},
-        "friends": []
+    "users": {
+        "juan": {
+            "password": "scrypt:32768:8:1$MubkhEID2bihvY32$596efae45ec67b0ace0911e6d231252541ce0c1e15bae93dad43deb2f810355dbfe9ffd50bea7fa4ab60039e004180285ed3d489e26faff8c2efb2c1b6fbf9c2",
+            "owned": [],
+            "duplicates": {},
+            "friends": []
+        },
+        "juanjosé26743": {
+            "password": "scrypt:32768:8:1$nwXkpsoXltczJayZ$7746d5da4c6fdcb8d5fb05756fc1999f9c30cbefa16b6b4db75453ea3569b0e30af8a28e45be97ba198fadfcf9f5b33be778a7b71155eb10869fcc52e5f78930",
+            "owned": [],
+            "duplicates": {},
+            "friends": []
+        },
+        "dsadas": {
+            "password": "scrypt:32768:8:1$a72ES270IguH4VNm$71aaf23d7d71d5ded5740670e987432d79898d2ac3ed305743ba635a47f4f98f125a77ed36dce823b3222b5c9d45bc10826eab127c895cee6ca582027d9e3906",
+            "owned": [
+                "CZE 1"
+            ],
+            "duplicates": {},
+            "friends": []
+        },
+        "jj": {
+            "password": "scrypt:32768:8:1$BvzDlhzOkoGjoRFX$5af80f07a8d869852e06951d3b93b686339e47fd4e7602c892f51095b9d5cb6282620547b0fff75a8c00993ca5f3352bf1912f48eca90a534b80e8166b34db2f",
+            "owned": [
+                "CZE 1",
+                "CZE 2",
+                "CZE 3",
+                "CZE 4",
+                "CZE 5"
+            ],
+            "duplicates": {
+                "CZE 3": 2,
+                "FW16": 1,
+                "00": 1
+            },
+            "friends": [
+                "jj2"
+            ]
+        },
+        "jj2": {
+            "password": "scrypt:32768:8:1$0IUWiT4YeJRuccog$3d4555d22a7656d1236e40f35d914742a9a1048248b84d38f74b627cd5c73a63a6ebc40afdc9aae2ed0f2864d0c7c97925657b66aac4b63f9ade9183a364ee48",
+            "owned": [
+                "CZE 1",
+                "CZE 2",
+                "CZE 3",
+                "CZE 4",
+                "CZE 7",
+                "CZE 8"
+            ],
+            "duplicates": {
+                "CZE 1": 1,
+                "CZE 2": 1,
+                "CZE 3": 1,
+                "CZE 4": 1,
+                "CZE 8": 2
+            },
+            "friends": [
+                "diefercast",
+                "jj"
+            ]
+        },
+        "diefercast": {
+            "password": "scrypt:32768:8:1$6X09Pv0FjuocvObW$cfdce9b00ebbf09725e2787d166c328deb46acf8efe27b011fd3b2dfef13b4028dd5488fb5eee021c35256dfb11867f7c88ac03294bc2a32ba91803cd31ee92f",
+            "owned": [],
+            "duplicates": {},
+            "friends": [
+                "jj2"
+            ]
+        }
     },
-    "juanjosé26743": {
-        "password": "scrypt:32768:8:1$nwXkpsoXltczJayZ$7746d5da4c6fdcb8d5fb05756fc1999f9c30cbefa16b6b4db75453ea3569b0e30af8a28e45be97ba198fadfcf9f5b33be778a7b71155eb10869fcc52e5f78930",
-        "owned": [],
-        "duplicates": {},
-        "friends": []
-    },
-    "dsadas": {
-        "password": "scrypt:32768:8:1$a72ES270IguH4VNm$71aaf23d7d71d5ded5740670e987432d79898d2ac3ed305743ba635a47f4f98f125a77ed36dce823b3222b5c9d45bc10826eab127c895cee6ca582027d9e3906",
-        "owned": [
-            "CZE 1"
-        ],
-        "duplicates": {},
-        "friends": []
-    }
+    "friend_requests": [
+        {
+            "id": 2,
+            "from": "jj2",
+            "to": "jj",
+            "status": "accepted"
+        },
+        {
+            "id": 4,
+            "from": "diefercast",
+            "to": "jj2",
+            "status": "accepted"
+        }
+    ],
+    "next_request_id": 5
 }

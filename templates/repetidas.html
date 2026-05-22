@@ -3,64 +3,36 @@
 {% block title %}Repetidas | PANINI DF{% endblock %}
 
 {% block content %}
-<section class="page-title">
+<section class="page-title repeat-title compact-repeat-title">
     <div>
         <p class="eyebrow">{% if friend %}Perfil de amigo{% else %}Intercambio{% endif %}</p>
-        <h1>{% if friend %}Repetidas de {{ friend }}{% elif selected_specials %}Láminas especiales repetidas{% elif selected_team %}Repetidas de {{ selected_team.name }}{% else %}Mis repetidas{% endif %}</h1>
-        <p>Abre un grupo para encontrar intercambios más rápido.</p>
+        <h1>{% if friend %}Repetidas de {{ friend }}{% elif selected_specials %}Especiales repetidas{% elif selected_team %}Repetidas {{ selected_team.code }}{% else %}Mis repetidas{% endif %}</h1>
+        <p>{{ repeated_total }} repetida{{ "" if repeated_total == 1 else "s" }}</p>
     </div>
+    {% if repeated_stickers %}
+        <button class="button primary share-repeat-button compact-share-button" type="button" data-share-repeats>
+            Compartir repetidas
+        </button>
+    {% endif %}
 </section>
 
-{% if teams %}
-    <section class="filter-row easy-filter">
-        <a class="chip" href="{{ url_for('repetidas') }}">Todas</a>
-        <a class="chip {% if selected_specials %}active{% endif %}" href="{{ url_for('repetidas', team_code='SPECIALS') }}">Especiales</a>
-        {% for team in teams %}
-            <a class="chip {% if selected_team and selected_team.code == team.code %}active{% endif %}" href="{{ url_for('repetidas', team_code=team.code) }}">{{ team.code }}</a>
-        {% endfor %}
+{% if repeated_stickers %}
+    <section class="repeat-share-card repeat-compact-card" id="repeat-share-card" data-share-card>
+        <header class="compact-share-header">
+            <span>{{ share_owner }}</span>
+            <strong>{{ repeated_total }}</strong>
+        </header>
+
+        <div class="repeat-sticker-grid compact-repeat-grid">
+            {% for sticker in repeated_stickers %}
+                <article class="repeat-sticker compact-repeat-code" style="--delay: {{ loop.index0 * 12 }}ms">
+                    <strong>{{ sticker.compact_code }}{% if sticker.duplicates > 1 %} ×{{ sticker.duplicates }}{% endif %}</strong>
+                </article>
+            {% endfor %}
+        </div>
     </section>
-{% endif %}
-
-{% if grouped %}
-    {% for group in grouped %}
-        <details class="collapsible" {% if loop.first %}open{% endif %} data-collapsible>
-            <summary class="collapsible-summary">
-                <div class="summary-main">
-                    <p class="eyebrow">{{ group.name }}</p>
-                    <h2>Repetidas disponibles</h2>
-                    <small>{{ group.teams|length }} selección{{ "" if group.teams|length == 1 else "es" }}</small>
-                </div>
-                <span class="toggle-label" data-toggle-label>{{ "Ocultar" if loop.first else "Ver más" }}</span>
-            </summary>
-
-            <div class="collapsible-body">
-                {% for team in group.teams %}
-                    <details class="collapsible nested-collapsible" {% if loop.first %}open{% endif %} data-collapsible>
-                        <summary class="collapsible-summary team-summary">
-                            <div class="summary-main">
-                                <h3>{{ team.name }}</h3>
-                                <small>{{ team.stickers|length }} lámina{{ "" if team.stickers|length == 1 else "s" }} repetida{{ "" if team.stickers|length == 1 else "s" }}</small>
-                            </div>
-                            <span class="toggle-label" data-toggle-label>{{ "Ocultar" if loop.first else "Ver más" }}</span>
-                        </summary>
-
-                        <div class="collapsible-body simple-list">
-                            {% for sticker in team.stickers %}
-                                <article class="list-item repeated-item compact-list-item">
-                                    <div>
-                                        <strong>{{ sticker.compact_code }}</strong>
-                                    </div>
-                                    <b class="counter">{{ sticker.duplicates }} repetida{{ "" if sticker.duplicates == 1 else "s" }}</b>
-                                </article>
-                            {% endfor %}
-                        </div>
-                    </details>
-                {% endfor %}
-            </div>
-        </details>
-    {% endfor %}
 {% else %}
-    <section class="panel">
+    <section class="panel compact-empty-panel">
         <p class="empty">No hay repetidas para mostrar.</p>
     </section>
 {% endif %}

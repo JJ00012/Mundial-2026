@@ -20,112 +20,93 @@ document.querySelectorAll("[data-collapsible]").forEach((section) => {
     section.addEventListener("toggle", updateLabel);
 });
 
-function repeatedText(amount) {
-    return `${amount} repetida${amount === 1 ? "" : "s"}`;
+function downloadBlob(blob, filename) {
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(link.href);
 }
 
-function setInlineMessage(card, message, type = "success") {
-    const feedback = card.querySelector("[data-inline-feedback]");
-    if (!feedback) {
-        return;
-    }
-
-    feedback.textContent = message || "";
-    feedback.classList.remove("success", "error");
-    if (message) {
-        feedback.classList.add(type === "error" ? "error" : "success");
-    }
-}
-
-function updateStickerCard(card, data) {
-    if (Object.prototype.hasOwnProperty.call(data, "owned")) {
-        card.dataset.owned = data.owned ? "1" : "0";
-        card.classList.toggle("owned", Boolean(data.owned));
-        card.classList.toggle("missing", !data.owned);
-
-        const toggleButton = card.querySelector("[data-toggle-button]");
-        if (toggleButton) {
-            toggleButton.textContent = data.owned ? "Quitar de mi álbum" : "Ya la tengo";
-        }
-    }
-
-    if (Object.prototype.hasOwnProperty.call(data, "duplicates")) {
-        const amount = Number(data.duplicates) || 0;
-        card.dataset.duplicates = String(amount);
-
-        const counter = card.querySelector("[data-repeat-count]");
-        if (counter) {
-            counter.textContent = repeatedText(amount);
-        }
-    }
-}
-
-function updateProgressStats(progress) {
-    if (!progress) {
-        return;
-    }
-
-    const fields = [
-        ["[data-stat-total]", progress.total_stickers],
-        ["[data-stat-owned]", progress.owned_count],
-        ["[data-stat-duplicates]", progress.duplicate_total],
-        ["[data-stat-missing]", progress.missing_count],
-    ];
-
-    fields.forEach(([selector, value]) => {
-        const element = document.querySelector(selector);
-        if (element && value !== undefined) {
-            element.textContent = value;
-        }
+function canvasToBlob(canvas) {
+    return new Promise((resolve) => {
+        canvas.toBlob((blob) => resolve(blob), "image/png", 0.98);
     });
 }
 
-document.querySelectorAll("[data-ajax-sticker]").forEach((form) => {
-    form.addEventListener("submit", async (event) => {
-        event.preventDefault();
+function loadHtml2Canvas() {
+    if (typeof html2canvas !== "undefined") {
+        return Promise.resolve(html2canvas);
+    }
 
-        const card = form.closest("[data-sticker-card]");
-        const button = form.querySelector("button");
-        if (!card || !button) {
-            form.submit();
+    return new Promise((resolve, reject) => {
+        const existingScript = document.querySelector("[data-html2canvas-script]");
+        if (existingScript) {
+            existingScript.addEventListener("load", () => resolve(html2canvas), { once: true });
+            existingScript.addEventListener("error", reject, { once: true });
             return;
         }
 
-        const isRepeatAdd = form.dataset.actionType === "repeat-add";
-        if (isRepeatAdd && card.dataset.owned !== "1") {
-            setInlineMessage(
-                card,
-                "No puedes marcar esta lámina como repetida porque aún no la tienes en tu álbum.",
-                "error"
-            );
-            return;
-        }
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js";
+        script.async = true;
+        script.dataset.html2canvasScript = "true";
+        script.addEventListener("load", () => resolve(html2canvas), { once: true });
+        script.addEventListener("error", reject, { once: true });
+        document.head.appendChild(script);
+    });
+}
 
-        button.disabled = true;
-        setInlineMessage(card, "");
+async function shareRepeatsCard(button) {
+    const card = document.querySelector("[data-share-card]");
+    if (!card) {
+        button.textContent = "No se pudo generar la imagen";
+        setTimeout(() => {
+            button.textContent = "Compartir repetidas";
+        }, 1800);
+        return;
+    }
 
-        try {
-            const response = await fetch(form.action, {
-                method: "POST",
-                headers: {
-                    "Accept": "application/json",
-                    "X-Requested-With": "fetch",
-                },
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = "Generando imagen...";
+
+    try {
+        const html2canvasLibrary = await loadHtml2Canvas();
+        const canvas = await html2canvasLibrary(card, {
+            backgroundColor: "#f7fbf7",
+            scale: Math.min(window.devicePixelRatio || 2, 3),
+            useCORS: true,
+        });
+        const blob = await canvasToBlob(canvas);
+        const file = new File([blob], "repetidas-mundial-2026.png", { type: "image/png" });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+                files: [file],
+                title: "Mis repetidas Mundial 2026",
+                text: "Estas son mis láminas repetidas para intercambiar.",
             });
-            const data = await response.json();
-
-            if (!response.ok || data.ok === false) {
-                setInlineMessage(card, data.message || "No se pudo actualizar la lámina.", "error");
-                return;
-            }
-
-            updateStickerCard(card, data);
-            updateProgressStats(data.progress);
-            setInlineMessage(card, data.message || "Actualizado.", "success");
-        } catch (error) {
-            setInlineMessage(card, "No se pudo conectar. Intenta de nuevo.", "error");
-        } finally {
-            button.disabled = false;
+        } else {
+            downloadBlob(blob, "repetidas-mundial-2026.png");
         }
-    });
-});
+    } catch (error) {
+        button.textContent = "Descarga no disponible";
+        setTimeout(() => {
+            button.textContent = originalText;
+            button.disabled = false;
+        }, 1800);
+        return;
+    }
+
+    button.disabled = false;
+    button.textContent = originalText;
+}
+
+const shareButton = document.querySelector("[data-share-repeats]");
+
+if (shareButton) {
+    shareButton.addEventListener("click", () => shareRepeatsCard(shareButton));
+}
